@@ -535,8 +535,8 @@ export class NoteWorkspace {
         noteDirectory = join(workspacePath, noteDirectory);
       }
       const noteDirUri = vscode.Uri.parse(noteDirectory);
-      const dirStat = await vscode.workspace.fs.stat(noteDirUri);
-      const dirExists = dirStat.type === vscode.FileType.Directory;
+      const dirStat = await Promise.resolve(vscode.workspace.fs.stat(noteDirUri)).catch(() => undefined);
+      const dirExists = dirStat?.type === vscode.FileType.Directory;
       if (!dirExists) {
         vscode.window.showWarningMessage(
           `Error. newNoteDirectory \`${noteDirectory}\` does not exist. Using WORKSPACE_ROOT.`
@@ -554,8 +554,8 @@ export class NoteWorkspace {
     const filepath = join(noteDirectory, filename);
 
     const fileUri = vscode.Uri.parse(filepath);
-    const fileStat = await vscode.workspace.fs.stat(fileUri);
-    const fileAlreadyExists = fileStat.type === vscode.FileType.File;
+    const fileStat = await Promise.resolve(vscode.workspace.fs.stat(fileUri)).catch(() => undefined);
+    const fileAlreadyExists = fileStat?.type === vscode.FileType.File;
     if (fileAlreadyExists) {
       vscode.window.showWarningMessage(
         `Error creating note, file at path already exists: ${filepath}`

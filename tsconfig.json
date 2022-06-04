@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["es2020.string"],
-    "module": "commonjs",
+    "module": "esnext",
     "target": "es6",
     "outDir": "out",
     "sourceMap": true,
