@@ -27,19 +27,20 @@ export class BibTeXCitations {
   }
 
   static async citations(): Promise<Array<string>> {
-    return this.bibTeXFile().then((x) => this.parseCitations(x));
+    const file = await this.bibTeXFile();
+    return this.parseCitations(file);
   }
 
   static async location(citation: string): Promise<vscode.Location> {
-    return this.bibTeXFile().then((x) => {
-      const pos = this.position(x, citation);
-      if (pos == null) {
-        return Promise.reject('Cannot get location');
-      } else {
-        const uri = vscode.Uri.file(this.bibTexFilePath());
-        return new vscode.Location(uri, pos);
-      }
-    });
+    const file =await this.bibTeXFile();
+
+    const pos = this.position(file, citation);
+    if (pos == null) {
+      throw new Error(`Cannot get location`);
+    } else {
+      const uri = vscode.Uri.file(this.bibTexFilePath());
+      return new vscode.Location(uri, pos);
+    }
   }
 
   private static bibTexFilePath(): string {

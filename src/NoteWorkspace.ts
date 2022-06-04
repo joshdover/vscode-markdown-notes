@@ -388,44 +388,40 @@ export class NoteWorkspace {
     });
   }
 
-  static newNote(context: vscode.ExtensionContext) {
+  static async newNote(context: vscode.ExtensionContext) {
     // console.debug('newNote');
-    const inputBoxPromise = NoteWorkspace.showNewNoteInputBox();
+    try {
+      const noteName = await NoteWorkspace.showNewNoteInputBox();
 
-    inputBoxPromise.then(
-      async (noteName) => {
-        if (noteName == null || !noteName || noteName.replace(/\s+/g, '') == '') {
-          // console.debug('Abort: noteName was empty.');
-          return false;
-        }
-        const { filepath, fileAlreadyExists } = await NoteWorkspace.createNewNoteFile(noteName);
-
-        // open the file:
-        vscode.window
-          .showTextDocument(vscode.Uri.file(filepath), {
-            preserveFocus: false,
-            preview: false,
-          })
-          .then(() => {
-            // if we created a new file, place the selection at the end of the last line of the template
-            if (!fileAlreadyExists) {
-              let editor = vscode.window.activeTextEditor;
-              if (editor) {
-                const lineNumber = editor.document.lineCount;
-                const range = editor.document.lineAt(lineNumber - 1).range;
-                editor.selection = new vscode.Selection(range.end, range.end);
-                editor.revealRange(range);
-              }
-            }
-          });
-      },
-      (err) => {
-        vscode.window.showErrorMessage('Error creating new note.');
+      if (noteName == null || !noteName || noteName.replace(/\s+/g, '') == '') {
+      // console.debug('Abort: noteName was empty.');
+        return false;
       }
-    );
+      const { fileUri, fileAlreadyExists } = await NoteWorkspace.createNewNoteFile(noteName);
+
+      // open the file:
+      await vscode.window
+        .showTextDocument(fileUri, {
+          preserveFocus: false,
+          preview: false,
+        });
+
+      // if we created a new file, place the selection at the end of the last line of the template
+      if (!fileAlreadyExists) {
+        let editor = vscode.window.activeTextEditor;
+        if (editor) {
+          const lineNumber = editor.document.lineCount;
+          const range = editor.document.lineAt(lineNumber - 1).range;
+          editor.selection = new vscode.Selection(range.end, range.end);
+          editor.revealRange(range);
+        }
+      }
+    } catch (err) {
+      vscode.window.showErrorMessage(`Error creating new note. ${err}`);
+    }
   }
 
-  static newNoteFromSelection(context: vscode.ExtensionContext) {
+  static async newNoteFromSelection(context: vscode.ExtensionContext) {
     const originEditor = vscode.window.activeTextEditor;
 
     if (!originEditor) {
@@ -442,67 +438,61 @@ export class NoteWorkspace {
     }
 
     // console.debug('newNote');
-    const inputBoxPromise = NoteWorkspace.showNewNoteInputBox();
+    try {
+      const noteName = await NoteWorkspace.showNewNoteInputBox();
 
-    inputBoxPromise.then(
-      async (noteName) => {
-        if (noteName == null || !noteName || noteName.replace(/\s+/g, '') == '') {
-          // console.debug('Abort: noteName was empty.');
-          return false;
-        }
-        const { filepath, fileAlreadyExists } = await NoteWorkspace.createNewNoteFile(noteName);
-        const destinationUri = vscode.Uri.file(filepath);
+      if (noteName == null || !noteName || noteName.replace(/\s+/g, '') == '') {
+        // console.debug('Abort: noteName was empty.');
+        return false;
+      }
+      const { fileUri, fileAlreadyExists } = await NoteWorkspace.createNewNoteFile(noteName);
 
-        // open the file:
-        vscode.window
-          .showTextDocument(destinationUri, {
-            preserveFocus: false,
-            preview: false,
-          })
-          .then(() => {
-            if (!fileAlreadyExists) {
-              const destinationEditor = vscode.window.activeTextEditor;
-              if (destinationEditor) {
-                // Place the selection at the end of the last line of the template
-                const lineNumber = destinationEditor.document.lineCount;
-                const range = destinationEditor.document.lineAt(lineNumber - 1).range;
-                destinationEditor.selection = new vscode.Selection(range.end, range.end);
-                destinationEditor.revealRange(range);
+      // open the file:
+      await vscode.window
+        .showTextDocument(fileUri, {
+          preserveFocus: false,
+          preview: false,
+        });
+      if (!fileAlreadyExists) {
+        const destinationEditor = vscode.window.activeTextEditor;
+        if (destinationEditor) {
+          // Place the selection at the end of the last line of the template
+          const lineNumber = destinationEditor.document.lineCount;
+          const range = destinationEditor.document.lineAt(lineNumber - 1).range;
+          destinationEditor.selection = new vscode.Selection(range.end, range.end);
+          destinationEditor.revealRange(range);
 
-                // Insert the selected content in to the new file
-                destinationEditor.edit((edit) => {
-                  if (destinationEditor) {
-                    if (range.start.character === range.end.character) {
-                      edit.insert(destinationEditor.selection.end, noteContents);
-                    } else {
-                      // If the last line is not empty, insert the note contents on a new line
-                      edit.insert(destinationEditor.selection.end, '\n\n' + noteContents);
-                    }
-                  }
-                });
-
-                // Replace the selected content in the origin file with a wiki-link to the new file
-                const edit = new vscode.WorkspaceEdit();
-                const wikiLink = NoteWorkspace.wikiLinkCompletionForConvention(
-                  destinationUri,
-                  originEditor.document
-                );
-
-                edit.replace(
-                  originEditor.document.uri,
-                  originSelectionRange,
-                  NoteWorkspace.selectionReplacementContent(wikiLink, noteName)
-                );
-
-                vscode.workspace.applyEdit(edit);
+          // Insert the selected content in to the new file
+          destinationEditor.edit((edit) => {
+            if (destinationEditor) {
+              if (range.start.character === range.end.character) {
+                edit.insert(destinationEditor.selection.end, noteContents);
+              } else {
+                // If the last line is not empty, insert the note contents on a new line
+                edit.insert(destinationEditor.selection.end, '\n\n' + noteContents);
               }
             }
           });
-      },
-      (err) => {
-        vscode.window.showErrorMessage('Error creating new note.');
+
+          // Replace the selected content in the origin file with a wiki-link to the new file
+          const edit = new vscode.WorkspaceEdit();
+          const wikiLink = NoteWorkspace.wikiLinkCompletionForConvention(
+            fileUri,
+            originEditor.document
+          );
+
+          edit.replace(
+            originEditor.document.uri,
+            originSelectionRange,
+            NoteWorkspace.selectionReplacementContent(wikiLink, noteName)
+          );
+
+          vscode.workspace.applyEdit(edit);
+        }
       }
-    );
+    } catch (err) {
+      vscode.window.showErrorMessage(`Error creating new note. ${err}`);
+    }
   }
 
   static async createNewNoteFile(noteTitle: string) {
@@ -567,7 +557,7 @@ export class NoteWorkspace {
     }
 
     return {
-      filepath: filepath,
+      fileUri,
       fileAlreadyExists: fileAlreadyExists,
     };
   }

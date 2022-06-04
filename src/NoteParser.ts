@@ -98,7 +98,7 @@ export class Note {
     // in the event that parseData(true) is called in the interim
     this._parsed = false;
 
-    const document = await vscode.workspace.openTextDocument(this.fsPath)
+    const document = await vscode.workspace.openTextDocument(this.fsPath);
     this.data = document.getText();
     return that;
   }
@@ -151,7 +151,7 @@ export class Note {
         that.refCandidates.push(RefCandidate.fromMatch(lineNum, match, RefType.WikiLink));
       });
       Array.from(line.matchAll(NoteWorkspace.rxMarkdownHyperlink())).map((match) => {
-          that.refCandidates.push(RefCandidate.fromMatch(lineNum, match, RefType.Hyperlink));
+        that.refCandidates.push(RefCandidate.fromMatch(lineNum, match, RefType.Hyperlink));
       });
     });
     // console.debug(`parsed ${this.fsPath}. refCandidates:`, this.refCandidates);
@@ -238,10 +238,9 @@ export class NoteParser {
   static async distinctTags(): Promise<Array<string>> {
     let useCache = true;
     let _tags: Array<string> = [];
-    await NoteParser.parsedFilesForWorkspace(useCache).then((pfs) => {
-      pfs.map((note) => {
-        _tags = _tags.concat(Array.from(note.tagSet()));
-      });
+    const pfs = await NoteParser.parsedFilesForWorkspace(useCache);
+    pfs.map((note) => {
+      _tags = _tags.concat(Array.from(note.tagSet()));
     });
     return Array.from(new Set(_tags));
   }
@@ -275,14 +274,13 @@ export class NoteParser {
   }
 
   // call this when we know a file has changed contents to update the cache
-  static updateCacheFor(fsPath: string) {
+  static async updateCacheFor(fsPath: string) {
     let that = this;
     let note = NoteParser.parsedFileFor(fsPath);
-    note.readFile(false).then((_pf) => {
-      _pf.parseData(false);
-      // remember to set in the master index:
-      that._notes[fsPath] = _pf;
-    });
+    const _pf = await note.readFile(false);
+    _pf.parseData(false);
+    // remember to set in the master index:
+    that._notes[fsPath] = _pf;
   }
 
   // call this when we know a file has been deleted

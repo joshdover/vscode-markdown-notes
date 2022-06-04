@@ -27,8 +27,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerReferenceProvider(ds, new MarkdownReferenceProvider())
   );
 
-  vscode.workspace.onDidChangeTextDocument((e: vscode.TextDocumentChangeEvent) => {
-    NoteParser.updateCacheFor(e.document.uri.fsPath);
+  vscode.workspace.onDidChangeTextDocument(async (e: vscode.TextDocumentChangeEvent) => {
+    await NoteParser.updateCacheFor(e.document.uri.fsPath);
 
     if (NoteWorkspace.triggerSuggestOnReplacement()) {
       // See discussion on https://github.com/kortina/vscode-markdown-notes/pull/69/
