@@ -553,7 +553,7 @@ export class NoteWorkspace {
     } else {
       // create the file if it does not exist
       const contents = NoteWorkspace.newNoteContent(noteTitle);
-      vscode.workspace.fs.writeFile(fileUri, Buffer.from(contents));
+      await vscode.workspace.fs.writeFile(fileUri, Buffer.from(contents));
     }
 
     return {
