@@ -35,9 +35,9 @@ export class MarkdownDefinitionProvider implements vscode.DefinitionProvider {
 
     // else, create the file
     if (files.length == 0) {
-      const path = await MarkdownDefinitionProvider.createMissingNote(ref);
-      if (path !== undefined) {
-        files.push(vscode.Uri.file(path));
+      const fileUri = await MarkdownDefinitionProvider.createMissingNote(ref);
+      if (fileUri !== undefined) {
+        files.push(fileUri);
       }
     }
 
@@ -97,7 +97,7 @@ export class MarkdownDefinitionProvider implements vscode.DefinitionProvider {
     return files;
   }
 
-  static createMissingNote = async (ref: Ref): Promise<string | undefined> => {
+  static createMissingNote = async (ref: Ref): Promise<vscode.Uri | undefined> => {
     // don't create new files if ref is a Tag
     if (ref.type != RefType.WikiLink) {
       return;
@@ -114,8 +114,8 @@ export class MarkdownDefinitionProvider implements vscode.DefinitionProvider {
         return;
       }
       const title = NoteWorkspace.stripExtension(ref.word);
-      const { filepath, fileAlreadyExists } = await NoteWorkspace.createNewNoteFile(title);
-      return filepath;
+      const { fileUri } = await NoteWorkspace.createNewNoteFile(title);
+      return fileUri;
     }
   };
 }
