@@ -3,9 +3,8 @@
 // via:
 // https://github.com/microsoft/vscode/issues/48674
 import { workspace, Uri } from 'vscode';
-import { exec, ExecException } from 'child_process';
-// import applicationInsights from './telemetry';
-import { join } from 'path';
+// import { exec, ExecException } from 'child_process';
+// import { join } from 'path';
 
 export default async function findNonIgnoredFiles(
   pattern: string,
@@ -17,12 +16,16 @@ export default async function findNonIgnoredFiles(
   ].join(',');
 
   const uris = await workspace.findFiles(pattern, `{${exclude}}`);
-  if (!checkGitIgnore) {
-    return uris;
-  }
-  return filterGitIgnored(uris);
+  return uris;
+
+  // if (!checkGitIgnore) {
+  //   return uris;
+  // }
+
+  // return filterGitIgnored(uris);
 }
 
+/**
 // TODO: https://github.com/Microsoft/vscode/blob/release/1.27/extensions/git/src/api/git.d.ts instead of git shell if possible
 async function filterGitIgnored(uris: Uri[]): Promise<Uri[]> {
   const workspaceRelativePaths = uris.map((uri) => workspace.asRelativePath(uri, false));
@@ -53,7 +56,8 @@ async function filterGitIgnored(uris: Uri[]): Promise<Uri[]> {
 
       for (const relativePath of stdout.split('\n')) {
         const uri = Uri.file(
-          join(workspaceDirectoryPath, relativePath.slice(1, -1) /* Remove quotes */)
+           // Remove quotes
+          join(workspaceDirectoryPath, relativePath.slice(1, -1))
         );
         const index = uris.findIndex((u) => u.fsPath === uri.fsPath);
         if (index > -1) {
@@ -67,3 +71,4 @@ async function filterGitIgnored(uris: Uri[]): Promise<Uri[]> {
   }
   return uris;
 }
+*/

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { readFile, existsSync } from 'fs';
+// import { readFile, existsSync } from 'fs';
 import { join } from 'path';
 
 type Config = {
@@ -18,7 +18,8 @@ export class BibTeXCitations {
   }
 
   static isBibtexFileConfigured(): Boolean {
-    return existsSync(this.bibTexFilePath());
+    return false;
+    // return existsSync(this.bibTexFilePath());
   }
 
   static rxBibTeX(): RegExp {
@@ -64,13 +65,13 @@ export class BibTeXCitations {
     }
 
     return new Promise((resolve, reject) => {
-      readFile(path, (error, buffer) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(buffer.toString());
-        }
-      });
+      // readFile(path, (error, buffer) => {
+      //   if (error) {
+      //     reject(error);
+      //   } else {
+      //     resolve(buffer.toString());
+      //   }
+      // });
     });
   }
 

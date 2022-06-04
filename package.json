@@ -23,6 +23,10 @@
   "categories": [
     "Programming Languages"
   ],
+  "extensionDependencies": [
+    "vscode.markdown",
+    "vscode.git"
+  ],
   "contributes": {
     "markdown.markdownItPlugins": true,
     "languages": [
@@ -195,6 +199,7 @@
     "*"
   ],
   "main": "./out/extension.js",
+  "browser": "./out/extension.js",
   "scripts": {
     "compile": "tsc -p ./",
     "jest": "jest",

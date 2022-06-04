@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { basename, dirname, isAbsolute, join, normalize, relative } from 'path';
-import { existsSync, writeFileSync } from 'fs';
+// import { existsSync, writeFileSync } from 'fs';
 import findNonIgnoredFiles from './findNonIgnoredFiles';
 const GithubSlugger = require('github-slugger');
 const SLUGGER = new GithubSlugger();
@@ -215,7 +215,7 @@ export class NoteWorkspace {
   }
 
   static rxMarkdownHyperlink(): RegExp {
-      return new RegExp(this._rxMarkdownHyperlink, 'gi');
+    return new RegExp(this._rxMarkdownHyperlink, 'gi');
   }
 
   static wikiLinkCompletionForConvention(
@@ -317,16 +317,16 @@ export class NoteWorkspace {
   // `left` is the ref word, `right` is the file name
   static noteNamesFuzzyMatchHyperlinks(left: string, right: string): boolean {
 
-      // strip markdown link syntax; remove the [description]
-      left = left.replace(/\[[^\[\]]*\]/g,'');
-      // and the () surrounding the link
-      left = left.replace(/\(|\)/g, '');
+    // strip markdown link syntax; remove the [description]
+    left = left.replace(/\[[^\[\]]*\]/g,'');
+    // and the () surrounding the link
+    left = left.replace(/\(|\)/g, '');
 
      
-      return (
-        this.normalizeNoteNameForFuzzyMatch(left).toLowerCase() ==
+    return (
+      this.normalizeNoteNameForFuzzyMatch(left).toLowerCase() ==
         this.normalizeNoteNameForFuzzyMatchText(right).toLowerCase()
-      );
+    );
 
   }
   // Compare 2 wiki-links for a fuzzy match.
@@ -393,12 +393,12 @@ export class NoteWorkspace {
     const inputBoxPromise = NoteWorkspace.showNewNoteInputBox();
 
     inputBoxPromise.then(
-      (noteName) => {
+      async (noteName) => {
         if (noteName == null || !noteName || noteName.replace(/\s+/g, '') == '') {
           // console.debug('Abort: noteName was empty.');
           return false;
         }
-        const { filepath, fileAlreadyExists } = NoteWorkspace.createNewNoteFile(noteName);
+        const { filepath, fileAlreadyExists } = await NoteWorkspace.createNewNoteFile(noteName);
 
         // open the file:
         vscode.window
@@ -445,12 +445,12 @@ export class NoteWorkspace {
     const inputBoxPromise = NoteWorkspace.showNewNoteInputBox();
 
     inputBoxPromise.then(
-      (noteName) => {
+      async (noteName) => {
         if (noteName == null || !noteName || noteName.replace(/\s+/g, '') == '') {
           // console.debug('Abort: noteName was empty.');
           return false;
         }
-        const { filepath, fileAlreadyExists } = NoteWorkspace.createNewNoteFile(noteName);
+        const { filepath, fileAlreadyExists } = await NoteWorkspace.createNewNoteFile(noteName);
         const destinationUri = vscode.Uri.file(filepath);
 
         // open the file:
@@ -505,7 +505,7 @@ export class NoteWorkspace {
     );
   }
 
-  static createNewNoteFile(noteTitle: string) {
+  static async createNewNoteFile(noteTitle: string) {
     let workspacePath = '';
     if (vscode.workspace.workspaceFolders) {
       workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath.toString();
@@ -534,7 +534,9 @@ export class NoteWorkspace {
       if (!isAbsolute(noteDirectory)) {
         noteDirectory = join(workspacePath, noteDirectory);
       }
-      const dirExists = existsSync(noteDirectory);
+      const noteDirUri = vscode.Uri.parse(noteDirectory);
+      const dirStat = await vscode.workspace.fs.stat(noteDirUri);
+      const dirExists = dirStat.type === vscode.FileType.Directory;
       if (!dirExists) {
         vscode.window.showWarningMessage(
           `Error. newNoteDirectory \`${noteDirectory}\` does not exist. Using WORKSPACE_ROOT.`
@@ -551,7 +553,9 @@ export class NoteWorkspace {
     const filename = NoteWorkspace.noteFileNameFromTitle(noteTitle);
     const filepath = join(noteDirectory, filename);
 
-    const fileAlreadyExists = existsSync(filepath);
+    const fileUri = vscode.Uri.parse(filepath);
+    const fileStat = await vscode.workspace.fs.stat(fileUri);
+    const fileAlreadyExists = fileStat.type === vscode.FileType.File;
     if (fileAlreadyExists) {
       vscode.window.showWarningMessage(
         `Error creating note, file at path already exists: ${filepath}`
@@ -559,7 +563,7 @@ export class NoteWorkspace {
     } else {
       // create the file if it does not exist
       const contents = NoteWorkspace.newNoteContent(noteTitle);
-      writeFileSync(filepath, contents);
+      vscode.workspace.fs.writeFile(fileUri, Buffer.from(contents));
     }
 
     return {

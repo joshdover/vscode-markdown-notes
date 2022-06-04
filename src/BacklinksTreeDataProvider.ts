@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { NoteParser } from './NoteParser';
 import { RefType } from './Ref';
@@ -107,7 +106,7 @@ export class BacklinksTreeDataProvider implements vscode.TreeDataProvider<Backli
       // Given the collapsible elements,
       // return the children, 1 for each location within the file
     } else if (element && element.locations) {
-      return Promise.resolve(
+      return Promise.all(
         element.locations.map((l) => BacklinkItem.fromLocation(l, element.filename))
       );
     } else {
@@ -117,15 +116,54 @@ export class BacklinksTreeDataProvider implements vscode.TreeDataProvider<Backli
 }
 
 class BacklinkItem extends vscode.TreeItem {
+  public readonly command?: vscode.Command;
+  public readonly tooltip: string;
+  public readonly description: string;
+  public readonly iconPath?: vscode.ThemeIcon;
+
   constructor(
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public locations?: vscode.Location[],
-    private location?: vscode.Location,
-    public filename?: string
+    public readonly locations?: vscode.Location[],
+    private readonly location?: vscode.Location,
+    public readonly filename?: string,
+    fileContents?: string
   ) {
     super(label, collapsibleState);
     this.filename = filename || '';
+    if (this.location) {
+      this.command = {
+        command: 'vscode.open',
+        arguments: [
+          this.location.uri,
+          {
+            preview: true,
+            selection: this.location.range,
+          },
+        ],
+        title: 'Open File',
+      };
+
+      let lines = (fileContents || '').toString().split(/\r?\n/);
+      let line = lines[this.location?.range.start.line];
+      // Look back 12 chars before the start of the reference.
+      // There is almost certainly a more elegant way to do this.
+      let s = this.location?.range.start.character - 12;
+      if (s < 20) {
+        s = 0;
+      }
+      this.description = line.substr(s);
+    } else if (this.locations) {
+      let r = this.locations?.length == 1 ? 'Reference' : 'References';
+      this.description = `${this.locations?.length} ${r}`;
+    } else {
+      this.description = '';
+    }
+
+    let lineText = this.location ? `line ${this.location?.range.start.line}` : undefined;
+    this.tooltip =  [this.filename, lineText, this.description].filter(Boolean).join(': ');
+    let r = this.locations?.length == 1 ? 'Reference' : 'References';
+    this.iconPath = `${this.locations?.length} ${r}`;
   }
 
   // return the 1 collapsible Item for each file
@@ -137,62 +175,12 @@ class BacklinkItem extends vscode.TreeItem {
   }
 
   // items for the locations within files
-  static fromLocation(location: vscode.Location, filename?: string): BacklinkItem {
+  static async fromLocation(location: vscode.Location, filename?: string): Promise<BacklinkItem> {
     // location / range is 0-indexed, but editor lines are 1-indexed
     let lineNum = location.range.start.line + 1;
     let label = `${lineNum}:`; // path.basename(location.uri.fsPath);
     let cs = vscode.TreeItemCollapsibleState.None;
-    return new BacklinkItem(label, cs, undefined, location, filename);
-  }
-
-  get command(): vscode.Command | undefined {
-    if (this.location) {
-      return {
-        command: 'vscode.open',
-        arguments: [
-          this.location.uri,
-          {
-            preview: true,
-            selection: this.location.range,
-          },
-        ],
-        title: 'Open File',
-      };
-    }
-  }
-
-  get tooltip(): string {
-    return [this.filename, this.lineText, this.description].filter(Boolean).join(': ');
-  }
-
-  get lineText(): string | undefined {
-    if (this.location) {
-      return `line ${this.location?.range.start.line}`;
-    }
-  }
-
-  get description(): string {
-    let d = ``;
-    if (this.location) {
-      let lines = (fs.readFileSync(this.location?.uri.fsPath) || '').toString().split(/\r?\n/);
-      let line = lines[this.location?.range.start.line];
-      // Look back 12 chars before the start of the reference.
-      // There is almost certainly a more elegant way to do this.
-      let s = this.location?.range.start.character - 12;
-      if (s < 20) {
-        s = 0;
-      }
-      return line.substr(s);
-    } else if (this.locations) {
-      let r = this.locations?.length == 1 ? 'Reference' : 'References';
-      d = `${this.locations?.length} ${r}`;
-    }
-    return d;
-  }
-
-  get iconPath(): vscode.ThemeIcon | undefined {
-    // to leave more room for the ref text,
-    // don't use an icon for each line
-    return this.location ? undefined : new vscode.ThemeIcon('references');
+    const file = await vscode.workspace.openTextDocument(location.uri);
+    return new BacklinkItem(label, cs, undefined, location, filename, file.getText());
   }
 }

@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import { Ref, RefType, getRefAt } from './Ref';
 import { NoteWorkspace } from './NoteWorkspace';
-import { basename, dirname, join, resolve } from 'path';
-import { existsSync, writeFileSync } from 'fs';
-import { titleCaseFromFilename } from './utils';
+import { dirname, resolve } from 'path';
+// import { existsSync, writeFileSync } from 'fs';
 import { BibTeXCitations } from './BibTeXCitations';
 
 // Given a document and position, check whether the current word matches one of
@@ -90,10 +89,10 @@ export class MarkdownDefinitionProvider implements vscode.DefinitionProvider {
       const relativePath = ref.word;
       let fromDir = dirname(relativeToDocument.uri.fsPath.toString());
       const absPath = resolve(fromDir, relativePath);
-      if (existsSync(absPath)) {
-        const f = vscode.Uri.file(absPath);
-        files.push(f);
-      }
+      // if (existsSync(absPath)) {
+      //   const f = vscode.Uri.file(absPath);
+      //   files.push(f);
+      // }
     }
     return files;
   }

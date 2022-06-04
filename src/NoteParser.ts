@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { basename } from 'path';
-import { readFile } from 'fs';
-const fsp = require('fs').promises;
+// import { readFile } from 'fs';
+// const fsp = require('fs').promises;
 import { Ref, RefType } from './Ref';
 import { NoteWorkspace } from './NoteWorkspace';
 
@@ -85,32 +85,22 @@ export class Note {
   // Promise that resolves to `this` Note instance.
   // Usage:
   // note.readFile().then(note => console.log(note.data));
-  readFile(useCache = false): Promise<Note> {
+  async readFile(useCache = false): Promise<Note> {
     // console.debug(`readFile: ${this.fsPath}`);
     let that = this;
     // if we are using the cache and cached data exists,
     // just resolve immediately without re-reading files
     if (useCache && this.data) {
-      return new Promise((resolve) => {
-        resolve(that);
-      });
+      return that;
     }
     // make sure we reset parsed to false because we are re-reading the file
     // and we don't want to end up using the old parsed refCandidates
     // in the event that parseData(true) is called in the interim
     this._parsed = false;
-    return new Promise((resolve, reject) => {
-      readFile(that.fsPath, (err, buffer) => {
-        if (err) {
-          reject(err);
-        } else {
-          // NB! Make sure to cast this to a string
-          // otherwise, it will cause weird silent failures
-          that.data = `${buffer}`;
-          resolve(that);
-        }
-      });
-    });
+
+    const document = await vscode.workspace.openTextDocument(this.fsPath)
+    this.data = document.getText();
+    return that;
   }
 
   parseData(useCache = false) {
